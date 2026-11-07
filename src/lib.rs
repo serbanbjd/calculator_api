@@ -4,5 +4,6 @@
 //! (ADR-0004).
 
 mod api;
+pub mod calc;
 
 pub use api::app;
