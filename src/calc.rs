@@ -3,6 +3,11 @@
 
 use std::fmt;
 
+pub use rust_decimal::Decimal;
+
+/// Exclusive magnitude limit for operands and results (NFR-3, FR-10): 10^28.
+const LIMIT: Decimal = Decimal::from_parts(0x1000_0000, 0x3E25_0261, 0x204F_CE5E, false, 0);
+
 /// The operations in PRD scope (FR-1 – FR-8).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Operation {
@@ -73,9 +78,79 @@ impl fmt::Display for CalcError {
     }
 }
 
+/// Read an operand from its decimal text, exactly (ADR-0003 rule 1).
+///
+/// Accepts plain (`-2.5`) and scientific (`2.5e-3`) notation. Rejects
+/// anything else, more than 28 decimal places, and magnitude ≥ 10^28.
+pub fn parse_operand(text: &str) -> Result<Decimal, CalcError> {
+    // The library also accepts `_` separators; JSON numbers never contain them.
+    if text.is_empty() || !text.bytes().all(|c| b"0123456789.-+eE".contains(&c)) {
+        return Err(CalcError::InvalidOperand("not a decimal number"));
+    }
+    let parsed = if text.contains(['e', 'E']) {
+        Decimal::from_scientific(text)
+    } else {
+        Decimal::from_str_exact(text)
+    };
+    let value = parsed.map_err(|_| {
+        CalcError::InvalidOperand(
+            "must be a decimal with at most 28 decimal places and magnitude below 10^28",
+        )
+    })?;
+    if value.abs() >= LIMIT {
+        return Err(CalcError::InvalidOperand("magnitude must be below 10^28"));
+    }
+    Ok(value)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn dec(s: &str) -> Decimal {
+        s.parse().unwrap()
+    }
+
+    // NFR-3: decimal text is read exactly, never through a binary float.
+    #[test]
+    fn parses_exact_decimals_and_scientific_notation() {
+        assert_eq!(parse_operand("0.1").unwrap(), dec("0.1"));
+        assert_eq!(parse_operand("-2.50").unwrap(), dec("-2.5"));
+        assert_eq!(parse_operand("1e3").unwrap(), dec("1000"));
+        assert_eq!(parse_operand("2.5E-3").unwrap(), dec("0.0025"));
+        assert_eq!(
+            parse_operand("9999999999999999999999999999").unwrap(),
+            dec("9999999999999999999999999999")
+        );
+        assert_eq!(
+            parse_operand("0.0000000000000000000000000001").unwrap(),
+            dec("0.0000000000000000000000000001")
+        );
+    }
+
+    // FR-9: anything that is not an in-range decimal is INVALID_INPUT.
+    #[test]
+    fn rejects_non_numbers_and_out_of_range_operands() {
+        for bad in [
+            "",
+            " 1",
+            "abc",
+            "1_000",
+            "0x10",
+            "NaN",
+            "inf",
+            "1,5",
+            "1e400",
+            "1e-40",
+            "1e28",
+            "-1e28",
+            "10000000000000000000000000000",
+            "0.00000000000000000000000000001",
+        ] {
+            let err = parse_operand(bad).unwrap_err();
+            assert_eq!(err.code(), "INVALID_INPUT", "{bad:?}");
+        }
+    }
 
     // FR-9: every PRD operation name parses, anything else does not.
     #[test]
@@ -115,6 +190,11 @@ mod tests {
     }
 
     // PRD section 6: the four stable error codes.
+    #[test]
+    fn limit_is_ten_to_the_28() {
+        assert_eq!(LIMIT, dec("10000000000000000000000000000"));
+    }
+
     #[test]
     fn errors_map_to_prd_codes() {
         assert_eq!(CalcError::InvalidOperand("x").code(), "INVALID_INPUT");
