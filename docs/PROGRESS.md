@@ -32,7 +32,7 @@ Timebox: ~4 h · Deadline: Tue 2026-11-10
 - [x] ADR-0003 number representation and precision
 - [x] ADR-0004 code structure (domain vs HTTP layer)
 - [x] ADR-0005 testing strategy
-- [x] Self-reviewed with `review-spec` (accepted by Serban: pending)
+- [x] Self-reviewed with `review-spec`; accepted by Serban (PR #3)
 
 *Done when:* every library the code will use is named in an accepted ADR.
 

@@ -1,6 +1,6 @@
 # ADR-0002: API contract and error model
 
-Status: Proposed · Date: 2026-11-07
+Status: Accepted (Serban, PR #3, 2026-11-07) · Date: 2026-11-07
 Drivers: FR-1 – FR-13, NFR-3, NFR-5, section 6 of the PRD
 
 ## Context

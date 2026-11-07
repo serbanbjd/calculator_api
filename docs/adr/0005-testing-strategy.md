@@ -1,6 +1,6 @@
 # ADR-0005: Testing strategy
 
-Status: Proposed · Date: 2026-11-07
+Status: Accepted (Serban, PR #3, 2026-11-07) · Date: 2026-11-07
 Drivers: every FR acceptance criterion, NFR-3, NFR-4, ADR-0003, ADR-0004
 
 ## Context

@@ -1,6 +1,6 @@
 # ADR-0004: Code structure
 
-Status: Proposed · Date: 2026-11-07
+Status: Accepted (Serban, PR #3, 2026-11-07) · Date: 2026-11-07
 Drivers: NFR-4, NFR-6, ADR-0001, ADR-0003, ADR-0005
 
 ## Context
