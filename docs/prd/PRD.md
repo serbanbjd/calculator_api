@@ -61,16 +61,17 @@ number. "Error" means the error response from section 6.
 |----|-------------|---------------------|----------|
 | FR-1 | Add two numbers `a + b` | `2, 3` → `5`; `-1.5, 0.5` → `-1` | Must |
 | FR-2 | Subtract `a - b` | `5, 3` → `2`; `3, 5` → `-2` | Must |
-| FR-3 | Multiply `a × b` | `4, 2.5` → `10`; `-3, 0` → `0` | Must |
+| FR-3 | Multiply `a × b` | `4, 2.5` → `10`; `-3, 0` → `0` (see FR-13) | Must |
 | FR-4 | Divide `a ÷ b` | `10, 4` → `2.5`; `1, 0` → error `DIVISION_BY_ZERO` | Must |
 | FR-5 | Power `a ^ b` | `2, 10` → `1024`; `4, 0.5` → `2`; `2, -1` → `0.5`; `0, -1` → error `UNDEFINED_RESULT`; `-8, 0.5` → error `UNDEFINED_RESULT` (not a real number) | Should |
 | FR-6 | Square root `√a` (one operand) | `9` → `3`; `2` → `1.4142135623730951`; `-1` → error `UNDEFINED_RESULT` | Should |
 | FR-7 | Modulo: remainder of `a ÷ b`, sign follows the dividend `a` | `10, 3` → `1`; `-10, 3` → `-1`; `5.5, 2` → `1.5`; `1, 0` → error `DIVISION_BY_ZERO` | Should |
 | FR-8 | Percentage: `a` percent of `b`, i.e. `a × b ÷ 100` | `20, 50` → `10`; `150, 40` → `60` | Could |
-| FR-9 | Reject invalid input | Missing operand, extra unknown fields, non-numeric operand, wrong operand count for the operation, malformed JSON, unknown operation → error `INVALID_INPUT` naming the problem field | Must |
+| FR-9 | Reject invalid input | Missing operand, extra unknown fields, non-numeric operand, operand outside the finite double range (e.g. `1e400`), wrong operand count for the operation, malformed JSON, unknown operation → error `INVALID_INPUT` naming the problem field | Must |
 | FR-10 | Never return a non-finite number | Any result that would be ±Infinity or NaN (e.g. `1e308 × 10`) → error `RESULT_OUT_OF_RANGE` instead | Must |
-| FR-11 | Health check | A health endpoint answers success with no calculation when the service is running | Must |
+| FR-11 | Health check | A health endpoint responds with a success status and a body reporting `ok`, without doing a calculation | Must |
 | FR-12 | API documentation | Every endpoint, request and response shape, including errors, is described in a machine-readable contract kept in the repo | Should |
+| FR-13 | Never return negative zero | A result of `-0` is returned as `0`: `-3, 0` multiply → `0`; `0, -5` divide → `0` | Should |
 
 ## 5. Non-functional requirements
 
@@ -106,7 +107,7 @@ No input causes a server error (NFR-4).
 | Q-1 | Must `0.1 + 0.2` return exactly `0.3` (decimal arithmetic)? | No: IEEE-754 doubles, documented in NFR-3. Decimal would rule out a simple `√` and fractional power | Open |
 | Q-2 | Which operations are in scope? | Core four plus power, square root, modulo, percentage; no expression parsing | Answered by Serban, 2026-11-07 |
 | Q-3 | Modulo sign convention for negatives? | Sign follows the dividend (truncated remainder, as in C, Rust, Java) | Open |
-| Q-4 | Is `-0` a valid result to return? | Normalise `-0` to `0` in responses | Open |
+| Q-4 | Is `-0` a valid result to return? | No: normalise to `0` (FR-13) | Open |
 | Q-5 | Auth and rate limiting? | Out of scope, handled by a gateway | Assumed |
 
 ## 8. Glossary
