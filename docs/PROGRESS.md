@@ -38,9 +38,9 @@ Timebox: ~4 h · Deadline: Tue 2026-11-10
 
 ## 4. Plan, tasks and UML
 
-- [ ] `docs/plan/PLAN.md` with component and sequence diagrams (Mermaid)
-- [ ] `docs/plan/TASKS.md` with FR → task coverage in both directions
-- [ ] Self-reviewed with `review-spec`; accepted by Serban
+- [x] `docs/plan/PLAN.md` with component and sequence diagrams (Mermaid)
+- [x] `docs/plan/TASKS.md` with FR → task coverage in both directions
+- [x] Self-reviewed with `review-spec` (accepted by Serban: pending)
 
 *Done when:* every FR maps to a task and every task has a checkable *Done when*.
 
