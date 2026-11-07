@@ -114,3 +114,79 @@ async fn unknown_or_missing_fields_are_invalid_input() {
         assert_eq!(res["error"]["code"], "INVALID_INPUT", "{body}");
     }
 }
+
+// ADR-0002: maths errors are 422 with their PRD code.
+#[tokio::test]
+async fn maths_errors_are_422() {
+    let unprocessable = StatusCode::UNPROCESSABLE_ENTITY;
+    for (body, code) in [
+        (
+            r#"{"operation":"divide","operands":[1,0]}"#,
+            "DIVISION_BY_ZERO",
+        ),
+        (
+            r#"{"operation":"modulo","operands":[1,0]}"#,
+            "DIVISION_BY_ZERO",
+        ),
+        (
+            r#"{"operation":"sqrt","operands":[-1]}"#,
+            "UNDEFINED_RESULT",
+        ),
+        (
+            r#"{"operation":"power","operands":[-8,0.5]}"#,
+            "UNDEFINED_RESULT",
+        ),
+        (
+            r#"{"operation":"multiply","operands":[1e20,1e10]}"#,
+            "RESULT_OUT_OF_RANGE",
+        ),
+    ] {
+        assert_error(calculate(body).await, unprocessable, code, None);
+    }
+}
+
+// FR-9, NFR-4: nothing reaches the client as plain text.
+#[tokio::test]
+async fn malformed_requests_get_json_errors() {
+    let bad = StatusCode::BAD_REQUEST;
+    assert_error(calculate("{not json").await, bad, "INVALID_INPUT", None);
+    assert_error(calculate("").await, bad, "INVALID_INPUT", None);
+    assert_error(calculate("[1,2]").await, bad, "INVALID_INPUT", None);
+
+    let no_content_type = Request::post("/v1/calculate")
+        .body(Body::from(r#"{"operation":"add","operands":[1,2]}"#))
+        .unwrap();
+    assert_error(send(no_content_type).await, bad, "INVALID_INPUT", None);
+}
+
+// NFR-5: bodies over 16 KB are 413 with INVALID_INPUT.
+#[tokio::test]
+async fn oversized_body_is_413() {
+    let body = format!(
+        r#"{{"operation":"add","operands":[1,2],"pad":"{}"}}"#,
+        "x".repeat(17 * 1024)
+    );
+    assert_error(
+        calculate(&body).await,
+        StatusCode::PAYLOAD_TOO_LARGE,
+        "INVALID_INPUT",
+        None,
+    );
+}
+
+// ADR-0002: unknown paths and wrong methods also answer in JSON.
+#[tokio::test]
+async fn unknown_path_and_wrong_method_are_json() {
+    assert_error(
+        send(get("/nope")).await,
+        StatusCode::NOT_FOUND,
+        "INVALID_INPUT",
+        None,
+    );
+    assert_error(
+        send(get("/v1/calculate")).await,
+        StatusCode::METHOD_NOT_ALLOWED,
+        "INVALID_INPUT",
+        None,
+    );
+}

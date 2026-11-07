@@ -2,7 +2,7 @@
 
 use axum::{
     Json, Router,
-    extract::rejection::JsonRejection,
+    extract::{DefaultBodyLimit, rejection::JsonRejection},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::{get, post},
@@ -17,6 +17,23 @@ pub fn app() -> Router {
     Router::new()
         .route("/health", get(health))
         .route("/v1/calculate", post(calculate))
+        .fallback(not_found)
+        .method_not_allowed_fallback(method_not_allowed)
+        .layer(DefaultBodyLimit::max(16 * 1024)) // NFR-5
+}
+
+async fn not_found() -> ApiError {
+    ApiError {
+        status: StatusCode::NOT_FOUND,
+        ..ApiError::invalid("no such endpoint".into(), None)
+    }
+}
+
+async fn method_not_allowed() -> ApiError {
+    ApiError {
+        status: StatusCode::METHOD_NOT_ALLOWED,
+        ..ApiError::invalid("method not allowed on this endpoint".into(), None)
+    }
 }
 
 // FR-11
@@ -34,7 +51,15 @@ struct CalculateRequest {
 async fn calculate(
     body: Result<Json<CalculateRequest>, JsonRejection>,
 ) -> Result<Json<Value>, ApiError> {
-    let Json(req) = body.map_err(|r| ApiError::invalid(r.body_text(), None))?;
+    let Json(req) = body.map_err(|r| ApiError {
+        // 413 for the body limit (NFR-5); every other rejection is a bad request.
+        status: if r.status() == StatusCode::PAYLOAD_TOO_LARGE {
+            StatusCode::PAYLOAD_TOO_LARGE
+        } else {
+            StatusCode::BAD_REQUEST
+        },
+        ..ApiError::invalid(r.body_text(), None)
+    })?;
     let op = Operation::from_name(&req.operation).ok_or_else(|| {
         ApiError::invalid(
             format!("unknown operation '{}'", req.operation),
