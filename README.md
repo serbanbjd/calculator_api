@@ -16,6 +16,7 @@ and a human reviewed.
 | `docs/prd/` | Product requirements: *what* the calculator does |
 | `docs/adr/` | Architecture decision records: *how* and *why* |
 | `docs/plan/` | Implementation plan, task list, UML diagrams |
+| `docs/DEPLOYMENT.md`, `Dockerfile`, `railway.toml` | Container build and Railway hosting |
 
 ## Workflow
 
