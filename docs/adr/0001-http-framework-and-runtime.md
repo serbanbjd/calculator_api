@@ -1,6 +1,6 @@
 # ADR-0001: HTTP framework, runtime and logging
 
-Status: Proposed · Date: 2026-11-07
+Status: Accepted (Serban, PR #3, 2026-11-07) · Date: 2026-11-07
 Drivers: Stack choice (Rust, by Serban), FR-9, FR-11, NFR-2, NFR-4, NFR-5, NFR-6, NFR-7
 
 ## Context

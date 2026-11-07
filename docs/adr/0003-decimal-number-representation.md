@@ -1,6 +1,6 @@
 # ADR-0003: Decimal number representation
 
-Status: Proposed · Date: 2026-11-07
+Status: Accepted (Serban, PR #3, 2026-11-07) · Date: 2026-11-07
 Drivers: NFR-3 (exact decimals, Q-1), FR-1 – FR-10, FR-13
 
 ## Context

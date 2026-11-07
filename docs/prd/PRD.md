@@ -1,6 +1,6 @@
 # PRD: Calculator API
 
-Status: **Accepted** (Serban, PR #1, 2026-11-07) · Amendment A1 proposed (ADR-0003, PR #3) · Owner: Serban
+Status: **Accepted** (Serban, PR #1, 2026-11-07) · Amendment A1 accepted (PR #3) · Owner: Serban
 
 ## 1. Problem and goal
 
@@ -110,7 +110,7 @@ No input causes a server error (NFR-4).
 | Q-3 | Modulo sign convention for negatives? | Sign follows the dividend: `-10 mod 3 = -1` (FR-7) | Answered by Serban, 2026-11-07 |
 | Q-4 | Is `-0` a valid result to return? | No: normalise to `0` (FR-13) | Answered by Serban, 2026-11-07 |
 | Q-5 | Auth and rate limiting? | Out of scope, handled by a gateway | Assumed |
-| Q-6 | What is `0 ^ 0`? | `1`, the convention in most languages and IEEE-754 `pow` | Open, part of A1 |
+| Q-6 | What is `0 ^ 0`? | `1`, the convention in most languages and IEEE-754 `pow` | Answered by Serban via A1, PR #3, 2026-11-07 |
 
 ## 8. Glossary
 
@@ -123,4 +123,4 @@ No input causes a server error (NFR-4).
 
 | ID | Date | Change | Why | Status |
 |----|------|--------|-----|--------|
-| A1 | 2026-11-07 | NFR-3, FR-4, FR-5, FR-6, FR-9, Q-6: precision is 28 decimal places (not 28 significant digits); `√` and fractional powers give 20 significant digits; no trailing zeros; `0 ^ 0 = 1`; tiny powers round to `0` | The ADR-0003 spike showed the decimal library's limit and that fractional powers are approximate (`4 ^ 0.5` = `2.0000000000000000000000000003`) | Proposed, needs Serban's acceptance |
+| A1 | 2026-11-07 | NFR-3, FR-4, FR-5, FR-6, FR-9, Q-6: precision is 28 decimal places (not 28 significant digits); `√` and fractional powers give 20 significant digits; no trailing zeros; `0 ^ 0 = 1`; tiny powers round to `0` | The ADR-0003 spike showed the decimal library's limit and that fractional powers are approximate (`4 ^ 0.5` = `2.0000000000000000000000000003`) | Accepted (Serban, PR #3) |
