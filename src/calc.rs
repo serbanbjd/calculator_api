@@ -103,6 +103,46 @@ pub fn parse_operand(text: &str) -> Result<Decimal, CalcError> {
     Ok(value)
 }
 
+/// Apply `op` to `operands` under the PRD numeric rules (ADR-0003 rules 2–6).
+pub fn evaluate(op: Operation, operands: &[Decimal]) -> Result<Decimal, CalcError> {
+    let (a, b) = match (op.arity(), operands) {
+        (1, [a]) => (*a, Decimal::ZERO),
+        (2, [a, b]) => (*a, *b),
+        _ => return Err(CalcError::InvalidOperand("wrong number of operands")),
+    };
+    let result = match op {
+        Operation::Add => a.checked_add(b),
+        Operation::Subtract => a.checked_sub(b),
+        Operation::Multiply => a.checked_mul(b),
+        Operation::Divide => {
+            if b.is_zero() {
+                return Err(CalcError::DivisionByZero);
+            }
+            a.checked_div(b)
+        }
+        Operation::Modulo | Operation::Percentage => todo!("T-05"),
+        Operation::Power | Operation::Sqrt => todo!("T-06"),
+    };
+    finish(result)
+}
+
+/// Range check and normalise a computed result (ADR-0003 rules 2 and 6).
+fn finish(result: Option<Decimal>) -> Result<Decimal, CalcError> {
+    match result {
+        Some(d) if d.abs() < LIMIT => Ok(normalise(d)),
+        _ => Err(CalcError::ResultOutOfRange),
+    }
+}
+
+/// Strip trailing zeros and turn `-0` into `0` (FR-13).
+fn normalise(d: Decimal) -> Decimal {
+    if d.is_zero() {
+        Decimal::ZERO
+    } else {
+        d.normalize()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -190,6 +230,116 @@ mod tests {
     }
 
     // PRD section 6: the four stable error codes.
+    fn eval(op: Operation, operands: &[&str]) -> Result<String, CalcError> {
+        let operands: Vec<Decimal> = operands.iter().map(|s| dec(s)).collect();
+        evaluate(op, &operands).map(|d| d.to_string())
+    }
+
+    fn ok(op: Operation, operands: &[&str], expected: &str) {
+        assert_eq!(
+            eval(op, operands),
+            Ok(expected.to_string()),
+            "{op:?} {operands:?}"
+        );
+    }
+
+    #[test]
+    fn fr1_add() {
+        ok(Operation::Add, &["2", "3"], "5");
+        ok(Operation::Add, &["-1.5", "0.5"], "-1");
+        ok(Operation::Add, &["0.1", "0.2"], "0.3");
+    }
+
+    #[test]
+    fn fr2_subtract() {
+        ok(Operation::Subtract, &["5", "3"], "2");
+        ok(Operation::Subtract, &["3", "5"], "-2");
+    }
+
+    #[test]
+    fn fr3_multiply() {
+        ok(Operation::Multiply, &["4", "2.5"], "10");
+        ok(Operation::Multiply, &["-3", "0"], "0");
+    }
+
+    #[test]
+    fn fr4_divide() {
+        ok(Operation::Divide, &["10", "4"], "2.5");
+        ok(
+            Operation::Divide,
+            &["1", "3"],
+            "0.3333333333333333333333333333",
+        );
+        ok(
+            Operation::Divide,
+            &["1", "300"],
+            "0.0033333333333333333333333333",
+        );
+        ok(
+            Operation::Divide,
+            &["2", "3"],
+            "0.6666666666666666666666666667",
+        );
+    }
+
+    #[test]
+    fn fr4_divide_by_zero() {
+        assert_eq!(
+            eval(Operation::Divide, &["1", "0"]),
+            Err(CalcError::DivisionByZero)
+        );
+        assert_eq!(
+            eval(Operation::Divide, &["0", "0"]),
+            Err(CalcError::DivisionByZero)
+        );
+    }
+
+    #[test]
+    fn fr10_out_of_range() {
+        let huge = "9999999999999999999999999999";
+        for (op, operands) in [
+            (
+                Operation::Multiply,
+                ["100000000000000000000", "10000000000"],
+            ),
+            (Operation::Add, [huge, "1"]),
+            (Operation::Subtract, ["-9999999999999999999999999999", "1"]),
+            (Operation::Divide, [huge, "0.1"]),
+            (Operation::Multiply, [huge, huge]),
+        ] {
+            assert_eq!(
+                eval(op, &operands),
+                Err(CalcError::ResultOutOfRange),
+                "{op:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn fr13_never_negative_zero_or_trailing_zeros() {
+        ok(Operation::Multiply, &["-3", "0"], "0");
+        ok(Operation::Divide, &["0", "-5"], "0");
+        ok(Operation::Add, &["-0.5", "0.5"], "0");
+        ok(Operation::Multiply, &["0.5", "5"], "2.5");
+        ok(Operation::Add, &["1.25", "1.25"], "2.5");
+    }
+
+    #[test]
+    fn wrong_operand_count_is_invalid_input() {
+        assert_eq!(
+            eval(Operation::Add, &["1"]).unwrap_err().code(),
+            "INVALID_INPUT"
+        );
+        assert_eq!(
+            eval(Operation::Add, &["1", "2", "3"]).unwrap_err().code(),
+            "INVALID_INPUT"
+        );
+        assert_eq!(
+            eval(Operation::Sqrt, &["1", "2"]).unwrap_err().code(),
+            "INVALID_INPUT"
+        );
+    }
+
     #[test]
     fn limit_is_ten_to_the_28() {
         assert_eq!(LIMIT, dec("10000000000000000000000000000"));
