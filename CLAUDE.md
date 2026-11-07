@@ -28,7 +28,7 @@ truth; code is an implementation of them. Read this file before any change.
 | 1. Requirements | `docs/prd/PRD.md` | `write-prd` | superpowers `brainstorming` |
 | 2. Architecture | `docs/adr/NNNN-*.md` | `write-adr` | superpowers `brainstorming` |
 | 3. Plan | `docs/plan/PLAN.md`, `TASKS.md`, UML | `plan-tasks` | superpowers `writing-plans` |
-| 4. Code | `src/`, `tests/` | `implement-task` | superpowers `executing-plans`, `test-driven-development`; ponytail |
+| 4. Code | `src/`, `tests/` (Rust) | `implement-task` | superpowers `executing-plans`, `test-driven-development`; ponytail |
 | Any doc | review notes | `review-spec` | superpowers `requesting-code-review` |
 
 ## Conventions
@@ -40,9 +40,24 @@ truth; code is an implementation of them. Read this file before any change.
 - Known shortcuts get a code comment: `shortcut: <limit>, <when to upgrade>`
   (ponytail convention).
 
+## Stack
+
+Rust (stable, edition 2024), built with Cargo. Libraries (HTTP framework,
+serialization, test helpers) are chosen in ADRs, not added ad hoc.
+
 ## Commands
 
-_Filled in once the stack is scaffolded._
+Run all of these before every commit; all must pass.
+
+```sh
+cargo fmt --check              # formatting
+cargo clippy -- -D warnings    # lints, warnings are errors
+cargo test                     # unit + integration tests
+cargo run                      # start the API locally
+```
+
+Unit tests live next to the code in `#[cfg(test)] mod tests`; API-level tests
+live in `tests/`.
 
 ## Boundaries for the agent
 

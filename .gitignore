@@ -13,3 +13,6 @@ Thumbs.db
 # Agent local state (shared config lives in .claude/settings.json)
 .claude/settings.local.json
 .claude/worktrees/
+
+# Rust build output
+/target/
