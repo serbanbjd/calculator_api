@@ -46,7 +46,7 @@ traceability table maps FR → test names.
 - Positive: the whole suite runs in seconds with no network or ports, so it
   runs before every commit (CLAUDE.md).
 - Positive: property tests target exactly the code we wrote around the
-  library (ADR-0003 rules 1–5).
+  library (ADR-0003 rules 1–6).
 - Negative: no automatic check that `openapi.yaml` matches responses; drift is
   caught only where tests reuse its examples.
 - Negative: NFR-2 is measured once, not guarded continuously.

@@ -53,6 +53,12 @@ Before deciding, a throwaway program ran the PRD acceptance examples through
 | `-10 mod 3`, `5.5 mod 2` | `-1`, `1.5` | Yes, sign follows dividend |
 | `-3 × 0` | `0` | Yes |
 | `1e-40`, `1e400` as input | parse error | Yes, can be mapped to `INVALID_INPUT` |
+| `-2 ^ 3`, `-2 ^ -2`, `1.5 ^ 2` | `-8`, `0.25`, `2.25` | Yes, integer exponents are exact |
+| `0 ^ 0` | `1` | PRD silent; see Q-6 |
+| `2 ^ -100` | `None` | **No**: true result is ~7.9 × 10^-31, which rounds to `0`, not an overflow |
+| `5e27 × 50` (inside `percentage(5e27, 50)`) | `None` | **No**: `5e27 × 50 ÷ 100 = 2.5e27` is in range, but the intermediate product overflows |
+| `√9` | `3.000000000000000000000000000` | Yes after normalising |
+| `-0` parsed, `0 × -5`, `0 ÷ -5` | `0` (not negative) | Yes; normalise anyway as a guard |
 | `serde_json` with `arbitrary_precision`, `{"a":0.1}` | raw text `0.1` kept | Yes, no `f64` on the way in |
 
 ## Decision
@@ -73,7 +79,11 @@ The domain layer applies these rules around the library:
 4. **Round approximate results** (`√` and non-integer powers) to 20
    significant digits, half-to-even. That gives `4 ^ 0.5 = 2` and only digits
    we know are correct.
-5. **Normalise** every result: strip trailing zeros (`0.50` → `0.5`) and turn
+5. **Avoid false overflows**: `percentage` computes `a × b ÷ 100`, and if
+   `a × b` overflows, retries as `(a ÷ 100) × b`. A power with a negative
+   exponent whose positive-exponent counterpart overflows has a magnitude
+   below 10^-28 and returns `0`.
+6. **Normalise** every result: strip trailing zeros (`0.50` → `0.5`) and turn
    `-0` into `0` (FR-13).
 
 This needs a PRD amendment (docs change before code): NFR-3 said "28

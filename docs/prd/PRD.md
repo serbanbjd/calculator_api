@@ -64,7 +64,7 @@ response from section 6.
 | FR-2 | Subtract `a - b` | `5, 3` → `2`; `3, 5` → `-2` | Must |
 | FR-3 | Multiply `a × b` | `4, 2.5` → `10`; `-3, 0` → `0` (see FR-13) | Must |
 | FR-4 | Divide `a ÷ b` | `10, 4` → `2.5`; `1, 3` → `0.3333333333333333333333333333` (28 decimal places); `1, 0` → error `DIVISION_BY_ZERO` | Must |
-| FR-5 | Power `a ^ b` | `2, 10` → `1024`; `4, 0.5` → `2`; `2, -1` → `0.5`; `0, -1` → error `UNDEFINED_RESULT`; `-8, 0.5` → error `UNDEFINED_RESULT` (not a real number) | Should |
+| FR-5 | Power `a ^ b` | `2, 10` → `1024`; `4, 0.5` → `2`; `2, -1` → `0.5`; `0, 0` → `1` (Q-6); `2, -100` → `0` (below 28 decimal places); `0, -1` → error `UNDEFINED_RESULT`; `-8, 0.5` → error `UNDEFINED_RESULT` (not a real number) | Should |
 | FR-6 | Square root `√a` (one operand) | `9` → `3`; `0.25` → `0.5`; `2` → `1.4142135623730950488` (20 significant digits); `-1` → error `UNDEFINED_RESULT` | Should |
 | FR-7 | Modulo: remainder of `a ÷ b`, sign follows the dividend `a` (Q-3) | `10, 3` → `1`; `-10, 3` → `-1`; `5.5, 2` → `1.5`; `1, 0` → error `DIVISION_BY_ZERO` | Should |
 | FR-8 | Percentage: `a` percent of `b`, i.e. `a × b ÷ 100` | `20, 50` → `10`; `150, 40` → `60` | Could |
@@ -110,6 +110,7 @@ No input causes a server error (NFR-4).
 | Q-3 | Modulo sign convention for negatives? | Sign follows the dividend: `-10 mod 3 = -1` (FR-7) | Answered by Serban, 2026-11-07 |
 | Q-4 | Is `-0` a valid result to return? | No: normalise to `0` (FR-13) | Answered by Serban, 2026-11-07 |
 | Q-5 | Auth and rate limiting? | Out of scope, handled by a gateway | Assumed |
+| Q-6 | What is `0 ^ 0`? | `1`, the convention in most languages and IEEE-754 `pow` | Open, part of A1 |
 
 ## 8. Glossary
 
@@ -122,4 +123,4 @@ No input causes a server error (NFR-4).
 
 | ID | Date | Change | Why | Status |
 |----|------|--------|-----|--------|
-| A1 | 2026-11-07 | NFR-3, FR-4, FR-6, FR-9: precision is 28 decimal places (not 28 significant digits); `√` and fractional powers give 20 significant digits; no trailing zeros | The ADR-0003 spike showed the decimal library's limit and that fractional powers are approximate (`4 ^ 0.5` = `2.0000000000000000000000000003`) | Proposed, needs Serban's acceptance |
+| A1 | 2026-11-07 | NFR-3, FR-4, FR-5, FR-6, FR-9, Q-6: precision is 28 decimal places (not 28 significant digits); `√` and fractional powers give 20 significant digits; no trailing zeros; `0 ^ 0 = 1`; tiny powers round to `0` | The ADR-0003 spike showed the decimal library's limit and that fractional powers are approximate (`4 ^ 0.5` = `2.0000000000000000000000000003`) | Proposed, needs Serban's acceptance |
