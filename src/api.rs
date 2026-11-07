@@ -4,7 +4,8 @@ use axum::{
     Json, Router,
     extract::{DefaultBodyLimit, rejection::JsonRejection},
     http::StatusCode,
-    response::{IntoResponse, Response},
+    http::header,
+    response::{Html, IntoResponse, Response},
     routing::{get, post},
 };
 use serde::Deserialize;
@@ -19,6 +20,8 @@ pub fn app() -> Router {
     Router::new()
         .route("/health", get(health))
         .route("/v1/calculate", post(calculate))
+        .route("/openapi.yaml", get(openapi))
+        .route("/docs", get(|| async { Html(include_str!("docs.html")) }))
         .fallback(not_found)
         .method_not_allowed_fallback(method_not_allowed)
         .layer(DefaultBodyLimit::max(16 * 1024)) // NFR-5
@@ -43,6 +46,14 @@ async fn method_not_allowed() -> ApiError {
         status: StatusCode::METHOD_NOT_ALLOWED,
         ..ApiError::invalid("method not allowed on this endpoint".into(), None)
     }
+}
+
+// FR-14: the same contract file the API tests check (ADR-0006).
+async fn openapi() -> impl IntoResponse {
+    (
+        [(header::CONTENT_TYPE, "application/yaml")],
+        include_str!("../docs/api/openapi.yaml"),
+    )
 }
 
 // FR-11

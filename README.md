@@ -29,7 +29,8 @@ curl -s localhost:8080/v1/calculate -H 'content-type: application/json' \
 
 Operations: `add`, `subtract`, `multiply`, `divide`, `power`, `modulo`,
 `percentage` (two operands) and `sqrt` (one). Full contract:
-[docs/api/openapi.yaml](docs/api/openapi.yaml).
+[docs/api/openapi.yaml](docs/api/openapi.yaml), also served at `/openapi.yaml`, with
+Swagger UI at [`/docs`](https://calculator-api-production-b82f.up.railway.app/docs).
 
 ## Repository layout
 

@@ -17,7 +17,7 @@ on the HTTP framework the ADR will pick.
 2. **runtime** (`debian:bookworm-slim`): only the `calculator_api` binary, run as a
    non-root user.
 
-`.dockerignore` keeps `target/`, `.git/`, docs and agent config out of the build
+`.dockerignore` keeps `target/`, `.git/`, docs (except `docs/api/`, which the binary embeds) and agent config out of the build
 context. `rust-toolchain.toml` is deliberately not copied: the image already pins a
 stable toolchain, and copying it would make rustup download rustfmt and clippy,
 which a release build does not need.

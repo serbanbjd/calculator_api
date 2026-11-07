@@ -1,7 +1,8 @@
 target/
 .git/
 .claude/
-docs/
+docs/*
+!docs/api/
 *.md
 .env
 .env.*
