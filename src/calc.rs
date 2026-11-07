@@ -492,3 +492,89 @@ mod tests {
         assert_eq!(CalcError::ResultOutOfRange.code(), "RESULT_OUT_OF_RANGE");
     }
 }
+
+/// Property tests over generated operands (ADR-0005, T-07).
+#[cfg(test)]
+mod properties {
+    use super::*;
+    use proptest::prelude::*;
+
+    const OPS: [Operation; 8] = [
+        Operation::Add,
+        Operation::Subtract,
+        Operation::Multiply,
+        Operation::Divide,
+        Operation::Power,
+        Operation::Sqrt,
+        Operation::Modulo,
+        Operation::Percentage,
+    ];
+
+    /// Any valid operand: magnitude below 10^28, 0–28 decimal places.
+    fn operand() -> impl Strategy<Value = Decimal> {
+        let max = 10i128.pow(28) - 1;
+        (-max..=max, 0u32..=28).prop_map(|(m, scale)| Decimal::from_i128_with_scale(m, scale))
+    }
+
+    /// Small operands: magnitude below 10^15, at most 10 decimal places.
+    fn small() -> impl Strategy<Value = Decimal> {
+        (-10i64.pow(15) + 1..10i64.pow(15), 0u32..=10).prop_map(|(m, scale)| Decimal::new(m, scale))
+    }
+
+    fn well_formed(d: Decimal) -> bool {
+        d.abs() < LIMIT
+            && !(d.is_zero() && d.is_sign_negative())
+            && d == d.normalize()
+            && d.scale() == d.normalize().scale()
+    }
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(2000))]
+
+        // NFR-4, FR-10, FR-13: never panics; every Ok result is in range,
+        // never -0, no trailing zeros; every error is a PRD code.
+        #[test]
+        fn evaluate_is_total_and_results_are_well_formed(
+            op in prop::sample::select(&OPS[..]),
+            a in operand(),
+            b in operand(),
+        ) {
+            let operands = if op.arity() == 1 { vec![a] } else { vec![a, b] };
+            match evaluate(op, &operands) {
+                Ok(d) => prop_assert!(well_formed(d), "{op:?}({a}, {b}) = {d:?}"),
+                Err(e) => prop_assert!(
+                    ["DIVISION_BY_ZERO", "UNDEFINED_RESULT", "RESULT_OUT_OF_RANGE"].contains(&e.code()),
+                    "{op:?}({a}, {b}) -> {e:?}"
+                ),
+            }
+        }
+
+        #[test]
+        fn add_and_multiply_commute(a in operand(), b in operand()) {
+            prop_assert_eq!(evaluate(Operation::Add, &[a, b]), evaluate(Operation::Add, &[b, a]));
+            prop_assert_eq!(evaluate(Operation::Multiply, &[a, b]), evaluate(Operation::Multiply, &[b, a]));
+        }
+
+        // Exact for small operands; larger ones may round to 28 places by design.
+        #[test]
+        fn subtract_undoes_add(a in small(), b in small()) {
+            let sum = evaluate(Operation::Add, &[a, b]).unwrap();
+            prop_assert_eq!(evaluate(Operation::Subtract, &[sum, b]).unwrap(), a.normalize());
+        }
+
+        #[test]
+        fn sqrt_matches_power_one_half(x in operand()) {
+            let x = x.abs();
+            prop_assert_eq!(
+                evaluate(Operation::Sqrt, &[x]),
+                evaluate(Operation::Power, &[x, Decimal::new(5, 1)])
+            );
+        }
+
+        // Parsing is the inverse of printing for every valid operand.
+        #[test]
+        fn parse_operand_round_trips(x in operand()) {
+            prop_assert_eq!(parse_operand(&x.to_string()).unwrap(), x);
+        }
+    }
+}
