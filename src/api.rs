@@ -9,6 +9,8 @@ use axum::{
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
+use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
+use tracing::Level;
 
 use crate::calc::{self, CalcError, Operation};
 
@@ -20,6 +22,13 @@ pub fn app() -> Router {
         .fallback(not_found)
         .method_not_allowed_fallback(method_not_allowed)
         .layer(DefaultBodyLimit::max(16 * 1024)) // NFR-5
+        // NFR-7: one span per request (method, path) and a response line with
+        // status and latency. Bodies, and so operands, are never logged.
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(DefaultMakeSpan::new().level(Level::INFO))
+                .on_response(DefaultOnResponse::new().level(Level::INFO)),
+        )
 }
 
 async fn not_found() -> ApiError {
@@ -85,6 +94,7 @@ async fn calculate(
             operand(v).map_err(|e| ApiError::invalid(e.to_string(), Some(format!("operands[{i}]"))))
         })
         .collect::<Result<Vec<_>, _>>()?;
+    tracing::info!(operation = req.operation, "calculate");
     let result = calc::evaluate(op, &operands)?;
     // ADR-0002: always a string, so no client parses it into a lossy double.
     Ok(Json(json!({ "result": result.to_string() })))
