@@ -1,6 +1,6 @@
 # PRD: Calculator API
 
-Status: **Draft** · Last reviewed: 2026-11-07 · Owner: Serban
+Status: **Accepted** (Serban, PR #1, 2026-11-07) · Last reviewed: 2026-11-07 · Owner: Serban
 
 ## 1. Problem and goal
 
