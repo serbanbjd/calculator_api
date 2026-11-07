@@ -329,6 +329,32 @@ mod tests {
         );
     }
 
+    // NFR-3 (amendment A2): rounding is half-to-even and also bounded by
+    // ~28 significant digits, not only 28 decimal places.
+    #[test]
+    fn nfr3_rounding_half_even_and_total_digits() {
+        ok(
+            Operation::Divide,
+            &["0.0000000000000000000000000001", "2"],
+            "0",
+        );
+        ok(
+            Operation::Divide,
+            &["0.0000000000000000000000000003", "2"],
+            "0.0000000000000000000000000002",
+        );
+        ok(
+            Operation::Divide,
+            &["123456", "7"],
+            "17636.571428571428571428571429",
+        );
+        ok(
+            Operation::Multiply,
+            &["1234567890.123456789", "1234567890.123456789"],
+            "1524157875323883675.0190519988",
+        );
+    }
+
     #[test]
     fn fr4_divide_by_zero() {
         assert_eq!(
