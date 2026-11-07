@@ -66,6 +66,6 @@ Timebox: ~4 h · Deadline: Tue 2026-11-10
 
 ## 7. Hand-in
 
-- [ ] Default branch on GitHub is `main`
-- [ ] History reads as a story (small, well-described commits)
+- [x] Default branch on GitHub is `main`
+- [x] History reads as a story (small, well-described commits)
 - [ ] Repo link sent to the interviewer
