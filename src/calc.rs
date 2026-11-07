@@ -4,6 +4,7 @@
 use std::fmt;
 
 pub use rust_decimal::Decimal;
+use rust_decimal::{MathematicalOps, RoundingStrategy};
 
 /// Exclusive magnitude limit for operands and results (NFR-3, FR-10): 10^28.
 const LIMIT: Decimal = Decimal::from_parts(0x1000_0000, 0x3E25_0261, 0x204F_CE5E, false, 0);
@@ -131,9 +132,45 @@ pub fn evaluate(op: Operation, operands: &[Decimal]) -> Result<Decimal, CalcErro
             .checked_mul(b)
             .and_then(|p| p.checked_div(Decimal::ONE_HUNDRED))
             .or_else(|| a.checked_div(Decimal::ONE_HUNDRED)?.checked_mul(b)),
-        Operation::Power | Operation::Sqrt => todo!("T-06"),
+        Operation::Power => return power(a, b),
+        Operation::Sqrt => {
+            if a.is_sign_negative() && !a.is_zero() {
+                return Err(CalcError::UndefinedResult(
+                    "square root of a negative number",
+                ));
+            }
+            a.sqrt().map(round_approximate)
+        }
     };
     finish(result)
+}
+
+/// `a ^ b` with the domain, rounding and underflow rules of ADR-0003.
+fn power(a: Decimal, b: Decimal) -> Result<Decimal, CalcError> {
+    let integer_exponent = b.fract().is_zero();
+    if a.is_zero() && b.is_sign_negative() && !b.is_zero() {
+        return Err(CalcError::UndefinedResult("zero to a negative power"));
+    }
+    if a.is_sign_negative() && !a.is_zero() && !integer_exponent {
+        return Err(CalcError::UndefinedResult(
+            "negative base with a fractional exponent is not a real number",
+        ));
+    }
+    match a.checked_powd(b) {
+        Some(r) if integer_exponent => finish(Some(r)),
+        Some(r) => finish(Some(round_approximate(r))),
+        // Rule 5: the library also fails on underflow. |a| > 1 with b < 0, or
+        // |a| < 1 with b > 0, shrinks towards 0, below 28 decimal places.
+        None if (a.abs() > Decimal::ONE) == b.is_sign_negative() => Ok(Decimal::ZERO),
+        None => Err(CalcError::ResultOutOfRange),
+    }
+}
+
+/// Round an approximate result (`√`, fractional power) to 20 significant
+/// digits, half-to-even, keeping only digits known to be correct (ADR-0003 rule 4).
+fn round_approximate(d: Decimal) -> Decimal {
+    d.round_sf_with_strategy(20, RoundingStrategy::MidpointNearestEven)
+        .unwrap_or(d)
 }
 
 /// Range check and normalise a computed result (ADR-0003 rules 2 and 6).
@@ -334,6 +371,65 @@ mod tests {
                 &["9999999999999999999999999999", "200"]
             ),
             Err(CalcError::ResultOutOfRange)
+        );
+    }
+
+    #[test]
+    fn fr5_power() {
+        ok(Operation::Power, &["2", "10"], "1024");
+        ok(Operation::Power, &["4", "0.5"], "2");
+        ok(Operation::Power, &["9", "0.5"], "3");
+        ok(Operation::Power, &["2", "0.5"], "1.4142135623730950488");
+        ok(Operation::Power, &["2", "-1"], "0.5");
+        ok(Operation::Power, &["-2", "3"], "-8");
+        ok(Operation::Power, &["-2", "-2"], "0.25");
+        ok(Operation::Power, &["1.5", "2"], "2.25");
+        ok(Operation::Power, &["0", "0"], "1"); // Q-6
+        ok(Operation::Power, &["0", "5"], "0");
+    }
+
+    // ADR-0003 rule 5: tiny results round to 0 instead of overflowing.
+    #[test]
+    fn fr5_power_underflow_rounds_to_zero() {
+        ok(Operation::Power, &["2", "-100"], "0");
+        ok(Operation::Power, &["0.5", "200"], "0");
+        ok(Operation::Power, &["-10", "-29"], "0");
+    }
+
+    #[test]
+    fn fr5_power_errors() {
+        let undefined = |a, b| eval(Operation::Power, &[a, b]).unwrap_err().code();
+        assert_eq!(undefined("0", "-1"), "UNDEFINED_RESULT");
+        assert_eq!(undefined("-8", "0.5"), "UNDEFINED_RESULT");
+        assert_eq!(undefined("-1", "1.5"), "UNDEFINED_RESULT");
+        assert_eq!(
+            eval(Operation::Power, &["10", "30"]),
+            Err(CalcError::ResultOutOfRange)
+        );
+        assert_eq!(
+            eval(Operation::Power, &["0.5", "-200"]),
+            Err(CalcError::ResultOutOfRange)
+        );
+        assert_eq!(
+            eval(Operation::Power, &["10", "28"]),
+            Err(CalcError::ResultOutOfRange)
+        );
+    }
+
+    #[test]
+    fn fr6_sqrt() {
+        ok(Operation::Sqrt, &["9"], "3");
+        ok(Operation::Sqrt, &["0.25"], "0.5");
+        ok(Operation::Sqrt, &["2"], "1.4142135623730950488");
+        ok(Operation::Sqrt, &["0"], "0");
+        ok(
+            Operation::Sqrt,
+            &["9999999999999999999999999999"],
+            "100000000000000",
+        );
+        assert_eq!(
+            eval(Operation::Sqrt, &["-1"]).unwrap_err().code(),
+            "UNDEFINED_RESULT"
         );
     }
 
