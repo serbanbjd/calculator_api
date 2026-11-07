@@ -18,9 +18,9 @@ Timebox: ~4 h · Deadline: Tue 2026-11-10
 
 ## 2. PRD: what the calculator covers
 
-- [ ] Scope decided with Serban (operations, in/out of scope)
-- [ ] `docs/prd/PRD.md` drafted with `write-prd`
-- [ ] Self-reviewed with `review-spec`; findings fixed
+- [x] Scope decided with Serban (operations, in/out of scope)
+- [x] `docs/prd/PRD.md` drafted with `write-prd`
+- [x] Self-reviewed with `review-spec`; findings fixed
 - [ ] Reviewed and accepted by Serban (PR merged, status `Accepted`)
 
 *Done when:* every FR has a testable acceptance criterion and open questions are answered or listed.
