@@ -1,6 +1,6 @@
 # PRD: Calculator API
 
-Status: **Accepted** (Serban, PR #1, 2026-11-07) · Amendment A1 proposed (ADR-0003, PR #2) · Owner: Serban
+Status: **Accepted** (Serban, PR #1, 2026-11-07) · Amendment A1 proposed (ADR-0003, PR #3) · Owner: Serban
 
 ## 1. Problem and goal
 
