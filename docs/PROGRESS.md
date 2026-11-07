@@ -55,12 +55,12 @@ Timebox: ~4 h · Deadline: Tue 2026-11-10
 
 ## 6. README answers
 
-- [ ] How the system boundaries were defined
-- [ ] How the PRD was gathered
-- [ ] When plans, tasks and PRD can be removed, and what follows
-- [ ] How AI-generated docs are reviewed (critical places)
-- [ ] When team review should happen
-- [ ] Test types added and why; legacy vs green-field preference
+- [x] How the system boundaries were defined
+- [x] How the PRD was gathered
+- [x] When plans, tasks and PRD can be removed, and what follows
+- [x] How AI-generated docs are reviewed (critical places)
+- [x] When team review should happen
+- [x] Test types added and why; legacy vs green-field preference
 
 *Done when:* README answers all six questions in short, honest prose.
 
