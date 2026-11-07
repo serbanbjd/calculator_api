@@ -1,6 +1,6 @@
 # PRD: Calculator API
 
-Status: **Accepted** (Serban, PR #1, 2026-11-07) · Last reviewed: 2026-11-07 · Owner: Serban
+Status: **Accepted** (Serban, PR #1, 2026-11-07) · Amendment A1 proposed (ADR-0003, PR #2) · Owner: Serban
 
 ## 1. Problem and goal
 
@@ -63,12 +63,12 @@ response from section 6.
 | FR-1 | Add two numbers `a + b` | `2, 3` → `5`; `-1.5, 0.5` → `-1`; `0.1, 0.2` → `0.3` exactly | Must |
 | FR-2 | Subtract `a - b` | `5, 3` → `2`; `3, 5` → `-2` | Must |
 | FR-3 | Multiply `a × b` | `4, 2.5` → `10`; `-3, 0` → `0` (see FR-13) | Must |
-| FR-4 | Divide `a ÷ b` | `10, 4` → `2.5`; `1, 3` → `0.3333333333333333333333333333` (28 significant digits); `1, 0` → error `DIVISION_BY_ZERO` | Must |
+| FR-4 | Divide `a ÷ b` | `10, 4` → `2.5`; `1, 3` → `0.3333333333333333333333333333` (28 decimal places); `1, 0` → error `DIVISION_BY_ZERO` | Must |
 | FR-5 | Power `a ^ b` | `2, 10` → `1024`; `4, 0.5` → `2`; `2, -1` → `0.5`; `0, -1` → error `UNDEFINED_RESULT`; `-8, 0.5` → error `UNDEFINED_RESULT` (not a real number) | Should |
-| FR-6 | Square root `√a` (one operand) | `9` → `3`; `0.25` → `0.5`; `2` → starts with `1.4142135623730950488` (≥ 20 correct significant digits); `-1` → error `UNDEFINED_RESULT` | Should |
+| FR-6 | Square root `√a` (one operand) | `9` → `3`; `0.25` → `0.5`; `2` → `1.4142135623730950488` (20 significant digits); `-1` → error `UNDEFINED_RESULT` | Should |
 | FR-7 | Modulo: remainder of `a ÷ b`, sign follows the dividend `a` (Q-3) | `10, 3` → `1`; `-10, 3` → `-1`; `5.5, 2` → `1.5`; `1, 0` → error `DIVISION_BY_ZERO` | Should |
 | FR-8 | Percentage: `a` percent of `b`, i.e. `a × b ÷ 100` | `20, 50` → `10`; `150, 40` → `60` | Could |
-| FR-9 | Reject invalid input | Missing operand, extra unknown fields, non-numeric operand, operand with magnitude ≥ 10^28 or more than 28 significant digits (e.g. `1e400`), wrong operand count for the operation, malformed JSON, unknown operation → error `INVALID_INPUT` naming the problem field | Must |
+| FR-9 | Reject invalid input | Missing operand, extra unknown fields, non-numeric operand, operand with magnitude ≥ 10^28 or more than 28 decimal places (e.g. `1e400`, `1e-40`), wrong operand count for the operation, malformed JSON, unknown operation → error `INVALID_INPUT` naming the problem field | Must |
 | FR-10 | Never return an out-of-range number | Any result with magnitude ≥ 10^28 (e.g. `1e20 × 1e10`, `10 ^ 30`) → error `RESULT_OUT_OF_RANGE` instead | Must |
 | FR-11 | Health check | A health endpoint responds with a success status and a body reporting `ok`, without doing a calculation | Must |
 | FR-12 | API documentation | Every endpoint, request and response shape, including errors, is described in a machine-readable contract kept in the repo | Should |
@@ -80,7 +80,7 @@ response from section 6.
 |----|-------------|---------|
 | NFR-1 | Stateless | No data survives a request; any instance can serve any request |
 | NFR-2 | Fast | p99 under 10 ms per request on a developer laptop, excluding network |
-| NFR-3 | Exact decimal numerics (Q-1) | Inputs are read as exact decimals (`0.1` is exactly one tenth, never a binary approximation). Results are exact when they fit in 28 significant digits; otherwise rounded half-to-even to 28 significant digits. Irrational results (`√`, fractional powers) are correct to at least 20 significant digits. Supported magnitude is below 10^28. Responses must carry the result to clients without losing digits |
+| NFR-3 | Exact decimal numerics (Q-1) | Inputs are read as exact decimals (`0.1` is exactly one tenth, never a binary approximation). Results are exact when they fit in 28 decimal places; otherwise rounded half-to-even to 28 decimal places (`1 ÷ 300` → `0.0033333333333333333333333333`). Results of `√` and non-integer powers are rounded half-to-even to 20 significant digits, all of them correct (`4 ^ 0.5` → `2`). Results carry no trailing zeros (`0.50` → `0.5`). Supported magnitude is below 10^28. Responses must carry the result to clients without losing digits |
 | NFR-4 | Robust | No input, however malformed or large, crashes the service or returns a server error |
 | NFR-5 | Bounded input | Request bodies over 16 KB are rejected with `INVALID_INPUT` |
 | NFR-6 | Easy to run | One command builds, one command tests, one command starts the service |
@@ -117,3 +117,9 @@ No input causes a server error (NFR-4).
 - **Significant digits**: the digits of a number from its first non-zero digit; `0.00123` has 3.
 - **Half-to-even rounding**: rounding a tie to the nearest even digit (`2.5 → 2`, `3.5 → 4`), which avoids drift across many operations.
 - **Error code**: the stable identifier in an error response that clients match on.
+
+## 9. Change log
+
+| ID | Date | Change | Why | Status |
+|----|------|--------|-----|--------|
+| A1 | 2026-11-07 | NFR-3, FR-4, FR-6, FR-9: precision is 28 decimal places (not 28 significant digits); `√` and fractional powers give 20 significant digits; no trailing zeros | The ADR-0003 spike showed the decimal library's limit and that fractional powers are approximate (`4 ^ 0.5` = `2.0000000000000000000000000003`) | Proposed, needs Serban's acceptance |
