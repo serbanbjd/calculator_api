@@ -80,7 +80,7 @@ response from section 6.
 |----|-------------|---------|
 | NFR-1 | Stateless | No data survives a request; any instance can serve any request |
 | NFR-2 | Fast | p99 under 10 ms per request on a developer laptop, excluding network |
-| NFR-3 | Exact decimal numerics (Q-1) | Inputs are read as exact decimals (`0.1` is exactly one tenth, never a binary approximation). Results are exact when they fit in 28 decimal places; otherwise rounded half-to-even to 28 decimal places (`1 ÷ 300` → `0.0033333333333333333333333333`). Results of `√` and non-integer powers are rounded half-to-even to 20 significant digits, all of them correct (`4 ^ 0.5` → `2`). Results carry no trailing zeros (`0.50` → `0.5`). Supported magnitude is below 10^28. Responses must carry the result to clients without losing digits |
+| NFR-3 | Exact decimal numerics (Q-1) | Inputs are read as exact decimals (`0.1` is exactly one tenth, never a binary approximation). Results are exact when they fit in 28 decimal places and 28 significant digits; otherwise rounded half-to-even until they fit both (`1 ÷ 300` → `0.0033333333333333333333333333`; `123456 ÷ 7` → `17636.571428571428571428571429`). Some results keep a 29th significant digit when it fits (A2). Results of `√` and non-integer powers are rounded half-to-even to 20 significant digits, all of them correct (`4 ^ 0.5` → `2`). Results carry no trailing zeros (`0.50` → `0.5`). Supported magnitude is below 10^28. Responses must carry the result to clients without losing digits |
 | NFR-4 | Robust | No input, however malformed or large, crashes the service or returns a server error |
 | NFR-5 | Bounded input | Request bodies over 16 KB are rejected with `INVALID_INPUT` |
 | NFR-6 | Easy to run | One command builds, one command tests, one command starts the service |
@@ -124,3 +124,4 @@ No input causes a server error (NFR-4).
 | ID | Date | Change | Why | Status |
 |----|------|--------|-----|--------|
 | A1 | 2026-11-07 | NFR-3, FR-4, FR-5, FR-6, FR-9, Q-6: precision is 28 decimal places (not 28 significant digits); `√` and fractional powers give 20 significant digits; no trailing zeros; `0 ^ 0 = 1`; tiny powers round to `0` | The ADR-0003 spike showed the decimal library's limit and that fractional powers are approximate (`4 ^ 0.5` = `2.0000000000000000000000000003`) | Accepted (Serban, PR #3) |
+| A2 | 2026-11-07 | NFR-3: results are also limited to about 28 significant digits, not only 28 decimal places | Found while running the API (T-10): `123456 ÷ 7` keeps 24 decimal places because the decimal type holds ~28–29 digits in total. A1 described only the decimal-place limit | Proposed in the step 5 PR, needs Serban's acceptance |
