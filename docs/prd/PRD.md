@@ -50,7 +50,7 @@ flowchart LR
 | Unlimited precision or big numbers | Results are exact decimals up to 28 significant digits with magnitude below 10^28 (NFR-3); more is not needed for a calculator |
 | Complex numbers, trigonometry, logarithms, units, currency | Not requested; can be added later as new FRs |
 | Batch or chained operations in one request | One request = one operation keeps the contract simple |
-| User interface | API only |
+| User interface | API only; the Swagger UI page (FR-14) is developer documentation, not a product UI |
 
 ## 4. Functional requirements
 
@@ -73,6 +73,7 @@ response from section 6.
 | FR-11 | Health check | A health endpoint responds with a success status and a body reporting `ok`, without doing a calculation | Must |
 | FR-12 | API documentation | Every endpoint, request and response shape, including errors, is described in a machine-readable contract kept in the repo | Should |
 | FR-13 | Never return negative zero (Q-4) | A result of `-0` is returned as `0`: `-3, 0` multiply → `0`; `0, -5` divide → `0` | Should |
+| FR-14 | Interactive API docs | `GET /openapi.yaml` returns the FR-12 contract unchanged; `GET /docs` shows it in Swagger UI so a person can read and try every operation from a browser | Could |
 
 ## 5. Non-functional requirements
 
@@ -125,3 +126,4 @@ No input causes a server error (NFR-4).
 |----|------|--------|-----|--------|
 | A1 | 2026-11-07 | NFR-3, FR-4, FR-5, FR-6, FR-9, Q-6: precision is 28 decimal places (not 28 significant digits); `√` and fractional powers give 20 significant digits; no trailing zeros; `0 ^ 0 = 1`; tiny powers round to `0` | The ADR-0003 spike showed the decimal library's limit and that fractional powers are approximate (`4 ^ 0.5` = `2.0000000000000000000000000003`) | Accepted (Serban, PR #3) |
 | A2 | 2026-11-07 | NFR-3: results are also limited to about 28 significant digits, not only 28 decimal places | Found while running the API (T-10): `123456 ÷ 7` keeps 24 decimal places because the decimal type holds ~28–29 digits in total. A1 described only the decimal-place limit | Proposed in the step 5 PR, needs Serban's acceptance |
+| A3 | 2026-11-07 | Add FR-14: serve the contract and a Swagger UI page | Serban asked for Swagger UI so the deployed API can be explored in a browser | Proposed in its PR, needs Serban's acceptance |
