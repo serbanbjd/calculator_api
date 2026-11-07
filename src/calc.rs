@@ -120,7 +120,17 @@ pub fn evaluate(op: Operation, operands: &[Decimal]) -> Result<Decimal, CalcErro
             }
             a.checked_div(b)
         }
-        Operation::Modulo | Operation::Percentage => todo!("T-05"),
+        Operation::Modulo => {
+            if b.is_zero() {
+                return Err(CalcError::DivisionByZero);
+            }
+            a.checked_rem(b)
+        }
+        // ADR-0003 rule 5: a x b can overflow when a% of b is still in range.
+        Operation::Percentage => a
+            .checked_mul(b)
+            .and_then(|p| p.checked_div(Decimal::ONE_HUNDRED))
+            .or_else(|| a.checked_div(Decimal::ONE_HUNDRED)?.checked_mul(b)),
         Operation::Power | Operation::Sqrt => todo!("T-06"),
     };
     finish(result)
@@ -291,6 +301,39 @@ mod tests {
         assert_eq!(
             eval(Operation::Divide, &["0", "0"]),
             Err(CalcError::DivisionByZero)
+        );
+    }
+
+    #[test]
+    fn fr7_modulo_sign_follows_dividend() {
+        ok(Operation::Modulo, &["10", "3"], "1");
+        ok(Operation::Modulo, &["-10", "3"], "-1");
+        ok(Operation::Modulo, &["10", "-3"], "1");
+        ok(Operation::Modulo, &["5.5", "2"], "1.5");
+        ok(Operation::Modulo, &["-9", "3"], "0");
+        assert_eq!(
+            eval(Operation::Modulo, &["1", "0"]),
+            Err(CalcError::DivisionByZero)
+        );
+    }
+
+    #[test]
+    fn fr8_percentage() {
+        ok(Operation::Percentage, &["20", "50"], "10");
+        ok(Operation::Percentage, &["150", "40"], "60");
+        ok(Operation::Percentage, &["-10", "0"], "0");
+        // ADR-0003 rule 5: a x b overflows, but the result is in range.
+        ok(
+            Operation::Percentage,
+            &["5000000000000000000000000000", "50"],
+            "2500000000000000000000000000",
+        );
+        assert_eq!(
+            eval(
+                Operation::Percentage,
+                &["9999999999999999999999999999", "200"]
+            ),
+            Err(CalcError::ResultOutOfRange)
         );
     }
 
