@@ -91,7 +91,7 @@ classDiagram
     class api {
         <<module>>
         +router() Router
-        -calculate(Result~Json~CalculateRequest~~) Result~Json~CalculateResponse~, ApiError~
+        -calculate(body) Result~CalculateResponse, ApiError~
         -health() Json
         -not_found() ApiError
         -method_not_allowed() ApiError
