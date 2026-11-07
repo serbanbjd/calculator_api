@@ -1,0 +1,144 @@
+openapi: 3.1.0
+info:
+  title: Calculator API
+  version: 1.0.0
+  description: |
+    Stateless calculator over exact decimals (PRD: docs/prd/PRD.md, contract: ADR-0002).
+
+    - Operands may be JSON numbers or numeric strings. JSON numbers are read from
+      their text, so `0.1` is exactly one tenth.
+    - Results are always strings, so clients never lose digits by parsing them
+      as binary floating point.
+    - Magnitude below 10^28; at most 28 decimal places and about 28 significant
+      digits, rounded half-to-even (NFR-3). `sqrt` and fractional powers give 20
+      significant digits.
+  license:
+    name: MIT
+servers:
+  - url: https://calculator-api-production-b82f.up.railway.app
+  - url: http://localhost:8080
+paths:
+  /v1/calculate:
+    post:
+      summary: Apply one operation to its operands
+      operationId: calculate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CalculateRequest' }
+            examples:
+              divide: { value: {"operation": "divide", "operands": [1, "3"]} }
+              sqrt: { value: {"operation": "sqrt", "operands": [2]} }
+      responses:
+        '200':
+          description: The result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CalculateResponse' }
+              examples:
+                divide: { value: {"result": "0.3333333333333333333333333333"} }
+                sqrt: { value: {"result": "1.4142135623730950488"} }
+        '400':
+          description: INVALID_INPUT, the request is malformed or an operand is not acceptable
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              example: {"error": {"code": "INVALID_INPUT", "message": "not a decimal number", "field": "operands[0]"}}
+        '404':
+          description: INVALID_INPUT, no such endpoint
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '405':
+          description: INVALID_INPUT, wrong method for this endpoint
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '413':
+          description: INVALID_INPUT, request body over 16 KB
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '422':
+          description: DIVISION_BY_ZERO, UNDEFINED_RESULT or RESULT_OUT_OF_RANGE
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              example: {"error": {"code": "DIVISION_BY_ZERO", "message": "division by zero"}}
+  /health:
+    get:
+      summary: Liveness check (FR-11)
+      operationId: health
+      responses:
+        '200':
+          description: The service is up
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status: { type: string, const: ok }
+components:
+  schemas:
+    Operand:
+      description: A decimal as a JSON number or a numeric string, e.g. 2.5, "2.5", 1e3, "1e-3".
+      oneOf:
+        - type: number
+        - type: string
+          pattern: '^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$'
+    CalculateRequest:
+      type: object
+      additionalProperties: false
+      required: [operation, operands]
+      properties:
+        operation:
+          type: string
+          enum: [add, subtract, multiply, divide, power, sqrt, modulo, percentage]
+          description: |
+            `sqrt` takes one operand, the others two. `modulo` keeps the sign of the
+            dividend. `percentage` of [a, b] is a percent of b.
+        operands:
+          type: array
+          minItems: 1
+          maxItems: 2
+          items: { $ref: '#/components/schemas/Operand' }
+    CalculateResponse:
+      type: object
+      required: [result]
+      properties:
+        result:
+          type: string
+          description: The result as a decimal string, no trailing zeros, never "-0".
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum: [INVALID_INPUT, DIVISION_BY_ZERO, UNDEFINED_RESULT, RESULT_OUT_OF_RANGE]
+            message: { type: string }
+            field:
+              type: string
+              description: The request field at fault, e.g. "operands[1]". Only for input errors.
+
+# Executable examples: tests/api.rs sends each request and expects exactly this
+# status and body. One JSON object per line; keep it that way so the test can
+# read them without a YAML parser.
+x-examples:
+  - {"request": {"operation": "add", "operands": [0.1, 0.2]}, "status": 200, "response": {"result": "0.3"}}
+  - {"request": {"operation": "divide", "operands": [1, "3"]}, "status": 200, "response": {"result": "0.3333333333333333333333333333"}}
+  - {"request": {"operation": "sqrt", "operands": [2]}, "status": 200, "response": {"result": "1.4142135623730950488"}}
+  - {"request": {"operation": "power", "operands": [4, 0.5]}, "status": 200, "response": {"result": "2"}}
+  - {"request": {"operation": "modulo", "operands": [-10, 3]}, "status": 200, "response": {"result": "-1"}}
+  - {"request": {"operation": "percentage", "operands": [20, 50]}, "status": 200, "response": {"result": "10"}}
+  - {"request": {"operation": "divide", "operands": [1, 0]}, "status": 422, "response": {"error": {"code": "DIVISION_BY_ZERO", "message": "division by zero"}}}
+  - {"request": {"operation": "sqrt", "operands": [-1]}, "status": 422, "response": {"error": {"code": "UNDEFINED_RESULT", "message": "square root of a negative number"}}}
+  - {"request": {"operation": "multiply", "operands": [1e20, 1e10]}, "status": 422, "response": {"error": {"code": "RESULT_OUT_OF_RANGE", "message": "result magnitude must be below 10^28"}}}
+  - {"request": {"operation": "add", "operands": ["abc", 1]}, "status": 400, "response": {"error": {"code": "INVALID_INPUT", "message": "not a decimal number", "field": "operands[0]"}}}
+  - {"request": {"operation": "nth_root", "operands": [8, 3]}, "status": 400, "response": {"error": {"code": "INVALID_INPUT", "message": "unknown operation 'nth_root'", "field": "operation"}}}

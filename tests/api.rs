@@ -190,3 +190,24 @@ async fn unknown_path_and_wrong_method_are_json() {
         None,
     );
 }
+
+// FR-12: every executable example in the OpenAPI contract holds.
+#[tokio::test]
+async fn openapi_examples_hold() {
+    let spec = include_str!("../docs/api/openapi.yaml");
+    assert!(spec.starts_with("openapi: 3.1"));
+    let examples: Vec<Value> = spec
+        .split_once("\nx-examples:\n")
+        .expect("x-examples section")
+        .1
+        .lines()
+        .filter_map(|l| l.trim().strip_prefix("- "))
+        .map(|l| serde_json::from_str(l).unwrap())
+        .collect();
+    assert!(examples.len() >= 10, "found {}", examples.len());
+    for ex in examples {
+        let (status, body) = calculate(&ex["request"].to_string()).await;
+        assert_eq!(status.as_u16(), ex["status"], "{ex}");
+        assert_eq!(body, ex["response"], "{ex}");
+    }
+}
