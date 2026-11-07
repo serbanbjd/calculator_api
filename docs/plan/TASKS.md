@@ -20,6 +20,7 @@ Tick the box in the same commit.
 | [x] | T-10 | **Logging.** `tracing-subscriber` with `RUST_LOG` (default `info`); `TraceLayer` logs method, path, status, latency. | NFR-7, ADR-0001 | T-09 | Running the server and sending a request prints one line with status and latency and no operand values (checked by hand, noted in the commit) |
 | [x] | T-11 | **OpenAPI contract.** `docs/api/openapi.yaml` (3.1) for both endpoints, all four error codes, with examples. | FR-12, ADR-0002 | T-09 | File parses as YAML and declares OpenAPI 3.1; every request/response example in it has a matching API test (an external linter is not allowed in this sandbox, so validation is by tests and review) |
 | [x] | T-12 | **Smoke test and run docs.** `curl` every operation against `cargo run`; measure latency of 1 000 requests; README "Run" section. | NFR-2, NFR-6 | T-10, T-11 | Smoke output and p99 latency recorded in the commit message; README shows build, test and run commands |
+| [x] | T-13 | **Swagger UI.** Embed `docs/api/openapi.yaml` and serve it at `GET /openapi.yaml`; `GET /docs` serves an HTML page loading pinned Swagger UI with SRI hashes; let `docs/api/` into the Docker build context. | FR-14, ADR-0006 | T-11 | API tests: `/openapi.yaml` returns the file byte for byte as `application/yaml`; `/docs` returns HTML that references `/openapi.yaml` and pinned, SRI-hashed assets; Railway deploy serves `/docs` |
 
 ## Coverage: requirements → tasks
 
@@ -27,6 +28,7 @@ Tick the box in the same commit.
 |-------------|-------|-|-------------|-------|
 | FR-1 add | T-04, T-08 | | FR-11 health | T-01 |
 | FR-2 subtract | T-04, T-08 | | FR-12 API docs | T-11 |
+| | | | FR-14 Swagger UI | T-13 |
 | FR-3 multiply | T-04, T-08 | | FR-13 no `-0` | T-04, T-07 |
 | FR-4 divide | T-04, T-08 | | NFR-1 stateless | T-01 (no state anywhere; checked in review) |
 | FR-5 power | T-06, T-08 | | NFR-2 fast | T-12 |

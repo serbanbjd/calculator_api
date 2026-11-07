@@ -211,3 +211,30 @@ async fn openapi_examples_hold() {
         assert_eq!(body, ex["response"], "{ex}");
     }
 }
+
+// FR-14: the contract is served unchanged, and /docs renders it in Swagger UI.
+#[tokio::test]
+async fn serves_openapi_and_swagger_ui() {
+    let res = calculator_api::app()
+        .oneshot(get("/openapi.yaml"))
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+    assert_eq!(res.headers()["content-type"], "application/yaml");
+    let body = res.into_body().collect().await.unwrap().to_bytes();
+    assert_eq!(body, include_str!("../docs/api/openapi.yaml").as_bytes());
+
+    let res = calculator_api::app().oneshot(get("/docs")).await.unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+    assert!(
+        res.headers()["content-type"]
+            .to_str()
+            .unwrap()
+            .starts_with("text/html")
+    );
+    let html =
+        String::from_utf8(res.into_body().collect().await.unwrap().to_bytes().to_vec()).unwrap();
+    assert!(html.contains("url: \"/openapi.yaml\""), "{html}");
+    assert!(html.contains("swagger-ui-dist@5.17.14/swagger-ui-bundle.js"));
+    assert_eq!(html.matches("integrity=\"sha384-").count(), 2);
+}

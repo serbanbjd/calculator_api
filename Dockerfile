@@ -14,6 +14,8 @@ RUN mkdir src && echo "fn main() {}" > src/main.rs \
     && rm -rf src
 
 COPY src ./src
+# the API serves its OpenAPI contract, embedded at compile time (ADR-0006)
+COPY docs/api ./docs/api
 # touch so cargo rebuilds the real main.rs instead of reusing the stub
 RUN touch src/main.rs && cargo build --release --locked
 
