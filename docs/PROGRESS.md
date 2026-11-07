@@ -21,18 +21,18 @@ Timebox: ~4 h · Deadline: Tue 2026-11-10
 - [x] Scope decided with Serban (operations, in/out of scope)
 - [x] `docs/prd/PRD.md` drafted with `write-prd`
 - [x] Self-reviewed with `review-spec`; findings fixed
-- [ ] Reviewed and accepted by Serban (PR merged, status `Accepted`)
+- [x] Reviewed and accepted by Serban (PR merged, status `Accepted`)
 
 *Done when:* every FR has a testable acceptance criterion and open questions are answered or listed.
 
 ## 3. ADRs: architecture
 
-- [ ] ADR-0001 language and HTTP framework
-- [ ] ADR-0002 API contract and error model
-- [ ] ADR-0003 number representation and precision
-- [ ] ADR-0004 code structure (domain vs HTTP layer)
-- [ ] ADR-0005 testing strategy
-- [ ] Self-reviewed with `review-spec`; accepted by Serban
+- [x] ADR-0001 language and HTTP framework
+- [x] ADR-0002 API contract and error model
+- [x] ADR-0003 number representation and precision
+- [x] ADR-0004 code structure (domain vs HTTP layer)
+- [x] ADR-0005 testing strategy
+- [x] Self-reviewed with `review-spec` (accepted by Serban: pending)
 
 *Done when:* every library the code will use is named in an accepted ADR.
 
