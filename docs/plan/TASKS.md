@@ -1,6 +1,6 @@
 # Tasks: Calculator API
 
-Status: Draft · Date: 2026-11-07 · Plan: [PLAN.md](PLAN.md)
+Status: Accepted (Serban, PR #4) · Date: 2026-11-07 · Plan: [PLAN.md](PLAN.md)
 
 Rules (from `plan-tasks` and `implement-task`): one task = one commit
 `feat(T-nn): …`; test first; done only when fmt, clippy and tests are green.
@@ -19,7 +19,7 @@ Tick the box in the same commit.
 | [x] | T-09 | **Error mapping and hardening.** `ApiError` → JSON body + status; map every `JsonRejection`; 16 KB body limit → 413; JSON 404 and 405 fallbacks. | FR-9, NFR-4, NFR-5, ADR-0002 | T-08 | API tests: malformed JSON → 400; wrong `Content-Type` → 400; 17 KB body → 413 `INVALID_INPUT`; `GET /nope` → 404 JSON; `GET /v1/calculate` → 405 JSON; divide by zero → 422 `DIVISION_BY_ZERO`; every error body has `code` and `message` |
 | [x] | T-10 | **Logging.** `tracing-subscriber` with `RUST_LOG` (default `info`); `TraceLayer` logs method, path, status, latency. | NFR-7, ADR-0001 | T-09 | Running the server and sending a request prints one line with status and latency and no operand values (checked by hand, noted in the commit) |
 | [x] | T-11 | **OpenAPI contract.** `docs/api/openapi.yaml` (3.1) for both endpoints, all four error codes, with examples. | FR-12, ADR-0002 | T-09 | File parses as YAML and declares OpenAPI 3.1; every request/response example in it has a matching API test (an external linter is not allowed in this sandbox, so validation is by tests and review) |
-| [ ] | T-12 | **Smoke test and run docs.** `curl` every operation against `cargo run`; measure latency of 1 000 requests; README "Run" section. | NFR-2, NFR-6 | T-10, T-11 | Smoke output and p99 latency recorded in the commit message; README shows build, test and run commands |
+| [x] | T-12 | **Smoke test and run docs.** `curl` every operation against `cargo run`; measure latency of 1 000 requests; README "Run" section. | NFR-2, NFR-6 | T-10, T-11 | Smoke output and p99 latency recorded in the commit message; README shows build, test and run commands |
 
 ## Coverage: requirements → tasks
 

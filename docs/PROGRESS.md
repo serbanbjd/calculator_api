@@ -40,16 +40,16 @@ Timebox: ~4 h · Deadline: Tue 2026-11-10
 
 - [x] `docs/plan/PLAN.md` with component and sequence diagrams (Mermaid)
 - [x] `docs/plan/TASKS.md` with FR → task coverage in both directions
-- [x] Self-reviewed with `review-spec` (accepted by Serban: pending)
+- [x] Self-reviewed with `review-spec`; accepted by Serban (PR #4)
 
 *Done when:* every FR maps to a task and every task has a checkable *Done when*.
 
 ## 5. Code
 
-- [ ] Walking skeleton: one endpoint end to end with a test
-- [ ] All tasks in `TASKS.md` implemented test-first, one commit each
-- [ ] `cargo fmt --check`, `cargo clippy -- -D warnings`, `cargo test` green
-- [ ] Manual smoke test with `curl` against `cargo run`
+- [x] Walking skeleton: one endpoint end to end with a test
+- [x] All tasks in `TASKS.md` implemented test-first, one commit each
+- [x] `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test` green
+- [x] Manual smoke test with `curl` against `cargo run`
 
 *Done when:* all tasks are ticked in `TASKS.md` and CI-equivalent checks pass.
 

@@ -4,7 +4,32 @@ A small calculator HTTP API built with **AI spec-driven development**: every lin
 code traces back to a written spec (PRD → ADR → plan/tasks) that an AI agent drafted
 and a human reviewed.
 
-> Status: project setup. Specs and code land in the following steps.
+> Status: specs accepted, code complete (see [docs/PROGRESS.md](docs/PROGRESS.md)).
+
+## Run
+
+Needs Rust stable (pinned in `rust-toolchain.toml`).
+
+```sh
+cargo test                       # unit, property and API tests (~1 s)
+cargo run                        # serves on 0.0.0.0:8080, or $PORT
+RUST_LOG=debug cargo run         # more logging
+docker build -t calculator-api . # container image, see docs/DEPLOYMENT.md
+```
+
+```sh
+curl -s localhost:8080/v1/calculate -H 'content-type: application/json' \
+  -d '{"operation": "divide", "operands": [1, "3"]}'
+# {"result":"0.3333333333333333333333333333"}
+
+curl -s localhost:8080/v1/calculate -H 'content-type: application/json' \
+  -d '{"operation": "divide", "operands": [1, 0]}'
+# {"error":{"code":"DIVISION_BY_ZERO","message":"division by zero"}}   (HTTP 422)
+```
+
+Operations: `add`, `subtract`, `multiply`, `divide`, `power`, `modulo`,
+`percentage` (two operands) and `sqrt` (one). Full contract:
+[docs/api/openapi.yaml](docs/api/openapi.yaml).
 
 ## Repository layout
 
@@ -16,6 +41,11 @@ and a human reviewed.
 | `docs/prd/` | Product requirements: *what* the calculator does |
 | `docs/adr/` | Architecture decision records: *how* and *why* |
 | `docs/plan/` | Implementation plan, task list, UML diagrams |
+| `docs/api/` | OpenAPI contract with executable examples |
+| `docs/reviews/` | Agent self-reviews of each spec, with findings and fixes |
+| `src/calc.rs` | Pure maths domain (exact decimals) |
+| `src/api.rs` | HTTP layer (axum) |
+| `tests/api.rs` | API tests through the real router |
 | `docs/DEPLOYMENT.md`, `Dockerfile`, `railway.toml` | Container build and Railway hosting |
 
 ## Workflow
