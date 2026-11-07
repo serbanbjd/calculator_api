@@ -51,7 +51,7 @@ Run all of these before every commit; all must pass.
 
 ```sh
 cargo fmt --check              # formatting
-cargo clippy -- -D warnings    # lints, warnings are errors
+cargo clippy --all-targets -- -D warnings  # lints incl. tests
 cargo test                     # unit + integration tests
 cargo run                      # start the API locally
 ```

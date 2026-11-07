@@ -1,6 +1,6 @@
 # Implementation plan: Calculator API
 
-Status: Draft · Date: 2026-11-07
+Status: Accepted (Serban, PR #4) · Date: 2026-11-07
 Inputs: [PRD](../prd/PRD.md) (Accepted, with A1) · [ADR-0001 – 0005](../adr/README.md) (Accepted)
 Tasks: [TASKS.md](TASKS.md)
 
