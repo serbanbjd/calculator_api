@@ -63,109 +63,82 @@ one started (PRs #1, #3, #4, #5), and each spec has an agent self-review in
 
 ## Questions from the brief
 
-### How I defined the boundaries of the system
+### How I defined the boundaries
 
-I started from what the service must *not* do. The PRD
-([section 3](docs/prd/PRD.md)) draws the boundary as one stateless HTTP service:
-it receives a request, computes, answers, stores nothing and calls nothing. A
-context diagram shows the only actors (API client, operator), and an
-out-of-scope table lists what was left out *and why*: expression parsing,
-history, auth and rate limiting (a gateway's job), arbitrary precision, UI.
-
-The second boundary is inside the code (ADR-0004): `calc` is pure maths with no
-HTTP or JSON, `api` translates HTTP into `calc` calls. The rule is that every
-input crosses one validation point (`parse_operand`), so nothing unchecked
+I started with what the service should *not* do. It is one stateless HTTP
+service: a request comes in, it computes, it answers. No storage, no calls to
+other systems, no auth or rate limiting (that belongs in a gateway in front
+of it). I chose the scope myself: the four basic operations plus power,
+square root, modulo and percentage, one operation per request, and no
+parsing of expressions like `2 + 3 * 4`, which would have eaten the timebox.
+The PRD has a context diagram and an out-of-scope table with a reason for
+each item. Inside the code there is a second boundary: `calc` is pure maths,
+`api` is HTTP, and every input passes one validation function before it
 reaches the maths.
 
 ### How I gathered the PRD
 
-With the `write-prd` skill, which runs superpowers `brainstorming`: the agent
-asks one question at a time, prefers multiple choice, and records every answer
-or assumption in the PRD's open-questions table instead of inventing it. In
-practice: scope was a three-option decision (core four / core four + extras /
-expression parsing), and three follow-up questions settled the details that
-change behaviour: exact decimals (`0.1 + 0.2 = 0.3`), modulo sign, and `-0`.
-Every requirement had to come with concrete input/output examples, which later
-became the unit tests one-to-one.
+The agent interviewed me one question at a time (the `write-prd` skill,
+built on superpowers `brainstorming`). I picked the scope and answered the
+questions that change behaviour: results must be exact decimals
+(`0.1 + 0.2 = 0.3`), modulo keeps the sign of the dividend, and `-0` is
+returned as `0`. Every requirement had to have concrete input/output
+examples, which later became the unit tests. I reviewed and merged the PRD
+as a pull request before any architecture work started. When the
+implementation showed the PRD was wrong about precision, the PRD was changed
+first (amendments A1 and A2), then the code.
 
-The PRD was not frozen at acceptance. Twice the implementation showed it could
-not be met as written (amendments A1 and A2 in the PRD change log); both times
-the document was changed first, reviewed in a PR, then the code followed.
+### When plans, tasks and PRD can be removed, and what follows
 
-### Plans, tasks and PRD: when they can go, and what follows
-
-- **Tasks** (`TASKS.md`) are done when the last box is ticked. Their value then
-  is history, which git already holds, so they can be deleted (or archived)
-  right after the feature ships.
-- **The plan** (`PLAN.md`) is useful until the code exists. Its lasting parts are
-  the diagrams and rules; those should move into living documentation (module
-  docs, an architecture page) and the plan can then go.
-- **The PRD** lives longer: it is the reference for "is this a bug or a
-  feature?" until the behaviour is fully pinned by tests and the API contract.
-  After that, what follows it is the **executable spec**: the tests named after
-  requirements (`fr4_divide_by_zero`), the OpenAPI file whose examples are run
-  by the test suite, and the ADRs, which are never deleted because they explain
-  *why*. New work starts a new, small PRD for the change, not an edit of a
-  giant one.
+- **Tasks** can go as soon as they are all done; git history keeps the record.
+- **The plan** can go once the code exists. The useful parts (diagrams,
+  per-operation rules) should move into living docs first.
+- **The PRD** stays until its behaviour is fully covered by tests and the API
+  contract. After that, the source of truth is the tests named after
+  requirements, the OpenAPI file whose examples run in the test suite, and the
+  ADRs, which I would never delete because they explain *why*. New features
+  start with a new, small PRD.
 
 ### How I review AI-generated documentation
 
-The `review-spec` skill is the checklist; the places I look at first, because
-that is where AI docs go wrong:
+The places I check first, because that is where AI goes wrong:
 
-1. **Invented requirements.** Anything that does not trace to something a
-   human said or to a listed assumption gets deleted.
-2. **Untestable criteria.** "Handles errors gracefully" is not a requirement;
+1. **Invented requirements**: anything I did not ask for gets removed.
+2. **Vague acceptance criteria**: "handles errors gracefully" is not testable;
    `1 ÷ 0 → DIVISION_BY_ZERO, HTTP 422` is.
-3. **Edge cases and limits.** Division by zero, overflow, precision, `-0`,
-   malformed and huge input.
-4. **Claims about libraries.** AI states what a library does with confidence.
-   I made the agent run a spike against the real crate before ADR-0003; it
-   found three behaviours the draft got wrong (`4 ^ 0.5 = 2.0…0003`,
-   `(-8) ^ 0.5` returning a number, the 28-decimal-place limit).
-5. **Consistency across documents.** A plan box that no ADR justifies, or an
-   ADR that silently contradicts the accepted PRD.
-6. **Costs in ADRs.** Every option must list its negatives, including the
-   chosen one.
+3. **Edge cases**: division by zero, overflow, precision, `-0`, bad input.
+4. **Claims about libraries**: I had the agent test the decimal library before
+   accepting the ADR. That caught three wrong assumptions (for example,
+   `(-8) ^ 0.5` returned a number instead of an error).
+5. **Consistency**: an ADR must not silently contradict the PRD, and every
+   box in the plan must trace back to a requirement or decision.
 
-Every review is written down with findings and severities
-([docs/reviews/](docs/reviews/)); the agent never marks its own document
-`Accepted`.
+Each review is written down in [docs/reviews/](docs/reviews/), and only I mark
+a document as accepted.
 
 ### When team review should happen
 
-At the cheapest point to change direction, which is before code:
-
-- **PRD**: product owner and one engineer, before any ADR. Scope mistakes are
-  the most expensive ones.
-- **ADRs**: the engineers who will maintain it, before the plan. This is where
-  dependencies and contracts get fixed.
-- **Plan**: optional, a quick look by one peer; it is derived from the two
-  above.
-- **Code**: normal PR review, but it is now shorter, because the reviewer
-  checks the code against already-agreed docs instead of debating design in
-  the diff.
-
-Here each of those was a separate PR merged by the reviewer, so the review gate
-is visible in the history.
+Before code, when changing direction is still cheap: the PRD with the product
+owner and an engineer, the ADRs with the engineers who will maintain the
+system, and the plan optionally with one peer. Code review then gets shorter,
+because it checks the code against decisions already agreed. In this repo
+each step was its own pull request, so the review points are visible in the
+history.
 
 ### Tests: what I added and why; legacy vs green-field
 
-| Type | Where | Why |
-|------|-------|-----|
-| Unit, example-based | `src/calc.rs` | One test per PRD acceptance example, named after the requirement, so the PRD is executable |
-| Property-based (`proptest`) | `src/calc.rs` | Our own rules around the decimal library are where bugs hide; 2000 random cases per property check "never panics, never -0, always in range" etc. Verified it bites: removing one `normalize()` call makes it fail with a shrunk counterexample |
-| API, in-process | `tests/api.rs` | Status codes, error bodies, body limit, 404/405, through the real router without opening a port |
-| Contract examples | `tests/api.rs` + `docs/api/openapi.yaml` | Every example in the OpenAPI file is sent and must match exactly, so docs cannot drift from code |
-| Smoke + latency, by hand | T-12 commit message | One real-socket run and a p99 measurement; not worth automating at this size |
+- **Unit tests** from every PRD example, named after the requirement
+  (`fr4_divide_by_zero`).
+- **Property-based tests** (`proptest`, 2000 random cases each) on the maths
+  rules I wrote around the library: never panics, never `-0`, always in range.
+  I checked they catch a planted bug.
+- **API tests** through the real router, without a network port: status codes,
+  error bodies, body limit.
+- **Contract tests**: every example in the OpenAPI file is sent to the API and
+  must match.
 
-**Green-field** (this project): test-first unit tests from the spec plus
-property tests, because the spec is fresh and precise and the code is designed
-to be testable (pure domain). Fast feedback matters more than broad coverage.
-
-**Legacy**: start from the outside. Characterisation (golden-master) tests at
-the API or contract level first, recording what the system does today before
-touching it; then end-to-end tests on the critical paths. Unit tests come
-later, as code is extracted into testable pieces. Property tests are still
-useful on legacy code to find the edge cases nobody documented.
-
+On a **green-field** system like this I prefer test-first unit and property
+tests: the spec is fresh and the code is designed to be testable. On a
+**legacy** system I would start from the outside: tests that record what the
+system does today at the API level, then end-to-end tests on critical paths,
+and unit tests only as code gets extracted into testable pieces.
